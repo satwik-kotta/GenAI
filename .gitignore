@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+
+# Local secrets and runtime files
+.env
+frontend/.env
+credentials.json
+token.json
+planner.db
+
+# Node dependencies
+frontend/node_modules/
+frontend/dist/
