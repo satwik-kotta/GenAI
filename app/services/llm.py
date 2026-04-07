@@ -14,6 +14,21 @@ def _extract_json_block(text: str) -> dict:
     return json.loads(match.group(0))
 
 
+def _extract_city_from_text(user_input: str) -> str | None:
+    # Lightweight city extraction for cases where model output is missing city.
+    city_match = re.search(
+        r"\b(?:in|at|near)\s+([a-zA-Z][a-zA-Z\s]{1,40}?)(?=\s*(?:,|\.|$|this\b|today\b|tomorrow\b|weekend\b|for\b|from\b|to\b|if\b|otherwise\b|and\b|but\b))",
+        user_input,
+        re.IGNORECASE,
+    )
+    if not city_match:
+        return None
+
+    city = city_match.group(1).strip(" ,.")
+    city = re.sub(r"\s+", " ", city)
+    return city.title() if city else None
+
+
 def _fallback_parse(user_input: str) -> ParsedIntent:
     text = user_input.lower()
 
@@ -44,7 +59,7 @@ def _fallback_parse(user_input: str) -> ParsedIntent:
         fallback_activity=fallback,
         weather_condition="Rain" if "rain" in text else None,
         time=time_text,
-        city="Mumbai" if "mumbai" in text else None,
+        city=_extract_city_from_text(user_input),
     )
 
 
@@ -71,9 +86,7 @@ User input: "{user_input}"
 
     candidate_models = [
         settings.gemini_model,
-        "models/gemini-2.0-flash",
-        "models/gemini-flash-latest",
-        "models/gemini-pro-latest",
+        "models/gemini-2.5-flash-lite"
     ]
 
     last_error = None
@@ -81,20 +94,23 @@ User input: "{user_input}"
     for model_name in candidate_models:
         try:
             model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
+            response = model.generate_content(prompt, request_options={"timeout": 20})
             break
         except Exception as exc:
             last_error = exc
 
     if response is None:
+        if last_error:
+            print(f"Gemini unavailable, using fallback parser: {last_error}")
         return _fallback_parse(user_input)
 
     parsed = _extract_json_block(response.text)
+    parsed_city = parsed.get("city") or _extract_city_from_text(user_input)
 
     return ParsedIntent(
         activity=parsed.get("activity", "Outdoor activity"),
         fallback_activity=parsed.get("fallback_activity", "Indoor activity"),
         weather_condition=parsed.get("weather_condition"),
         time=parsed.get("time"),
-        city=parsed.get("city"),
+        city=parsed_city,
     )

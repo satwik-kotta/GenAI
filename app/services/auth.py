@@ -22,6 +22,7 @@ def verify_google_id_token(token_value: str) -> dict:
     payload = id_token.verify_oauth2_token(
         token_value,
         google_requests.Request(),
+        clock_skew_in_seconds=60,
     )
 
     audience = payload.get("aud")

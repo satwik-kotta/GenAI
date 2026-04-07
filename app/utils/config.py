@@ -37,7 +37,7 @@ def get_settings() -> Settings:
 
     return Settings(
         gemini_api_key=os.getenv("GEMINI_API_KEY"),
-        gemini_model=os.getenv("GEMINI_MODEL", "models/gemini-2.0-flash"),
+        gemini_model=os.getenv("GEMINI_MODEL", "models/gemini-3.1-flash-lite-preview"),
         openweather_api_key=os.getenv("OPENWEATHER_API_KEY"),
         google_places_api_key=os.getenv("GOOGLE_PLACES_API_KEY"),
         google_oauth_client_id=os.getenv("GOOGLE_OAUTH_CLIENT_ID"),

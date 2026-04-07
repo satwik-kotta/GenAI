@@ -1,5 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
 const STORAGE_KEY = 'planner_access_token';
+const REQUEST_TIMEOUT_MS = 45000;
 
 let authToken = localStorage.getItem(STORAGE_KEY) || '';
 
@@ -17,6 +18,9 @@ export function getAuthToken() {
 }
 
 async function request(path, options = {}) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   const mergedHeaders = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
@@ -26,17 +30,51 @@ async function request(path, options = {}) {
     mergedHeaders.Authorization = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: mergedHeaders,
-    ...options,
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      headers: mergedHeaders,
+      ...options,
+      signal: options.signal || controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      const timeoutError = new Error(`Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s`);
+      timeoutError.stage = 'network';
+      timeoutError.statusCode = 408;
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text };
+    }
+  }
 
   if (!response.ok) {
-    const message = data?.detail || data?.message || `Request failed with status ${response.status}`;
-    throw new Error(message);
+    const detail = data?.detail;
+    const stage = detail && typeof detail === 'object' ? detail.stage : undefined;
+    const message =
+      (detail && typeof detail === 'object' ? detail.message : null)
+      || (typeof detail === 'string' ? detail : null)
+      || data?.message
+      || `Request failed with status ${response.status}`;
+
+    const requestError = new Error(message);
+    requestError.statusCode = response.status;
+    requestError.backendDetail = detail;
+    if (stage) {
+      requestError.stage = stage;
+    }
+    throw requestError;
   }
 
   return data;
@@ -84,6 +122,13 @@ export function searchPlaces(query, latitude, longitude) {
 
 export function previewPlan(payload) {
   return request('/plan/preview', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function revisePlan(payload) {
+  return request('/plan/revise', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

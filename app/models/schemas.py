@@ -6,6 +6,11 @@ class PlanRequest(BaseModel):
     city: str | None = Field(default=None, description="City for weather lookup")
     latitude: float | None = Field(default=None, description="Optional latitude for place search")
     longitude: float | None = Field(default=None, description="Optional longitude for place search")
+    selected_place_index: int | None = Field(default=None, description="Optional selected place index from place_options")
+
+
+class PlanReviseRequest(PlanRequest):
+    suggestion: str = Field(..., description="User feedback to revise the generated plan")
 
 
 class IntentRequest(BaseModel):
@@ -18,6 +23,7 @@ class WeatherRequest(BaseModel):
 
 class PlacesRequest(BaseModel):
     query: str = Field(..., description="Search keyword for place lookup")
+    city: str | None = Field(default=None, description="Optional city used to resolve coordinates when lat/lng are not provided")
     latitude: float | None = Field(default=None, description="Optional latitude for place search")
     longitude: float | None = Field(default=None, description="Optional longitude for place search")
 
@@ -42,6 +48,13 @@ class PlaceOption(BaseModel):
     name: str
     address: str | None = None
     rating: float | None = None
+    place_type: str | None = None
+
+
+class ProcessingTraceStep(BaseModel):
+    key: str
+    label: str
+    duration_ms: int
 
 
 class PlanResponse(BaseModel):
@@ -60,7 +73,9 @@ class PlanPreviewResponse(BaseModel):
     start_time: str
     end_time: str
     place_options: list[PlaceOption]
+    selected_place_index: int = 0
     selected_place: PlaceOption
+    trace_steps: list[ProcessingTraceStep] = Field(default_factory=list)
 
 
 class PlanExecuteResponse(PlanPreviewResponse):

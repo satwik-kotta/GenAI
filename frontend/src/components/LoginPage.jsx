@@ -1,53 +1,50 @@
-function LoginPage({ apiInfo, error, googleClientId }) {
+import { useState } from 'react';
+
+function LoginPage({ apiInfo, error, googleClientId, googleReady }) {
+  const [theme, setTheme] = useState('dark');
+  const isDarkTheme = theme === 'dark';
+
   return (
-    <div className="login-shell">
+    <div className={`login-shell ${isDarkTheme ? 'login-theme-dark' : 'login-theme-light'}`}>
       <div className="ambient ambient-one" />
       <div className="ambient ambient-two" />
 
       <main className="login-layout">
-        <section className="login-hero panel">
-          <p className="eyebrow">AI Day Planner</p>
-          <h1>Plan Smarter Days With One Prompt</h1>
-          <p className="hero-copy">
-            This app uses live weather, place discovery, and Google Calendar execution. Sign in with your Google account
-            to save your personal planning history and create events instantly.
-          </p>
-
-          <div className="feature-grid">
-            <article>
-              <h3>Intent to Structure</h3>
-              <p>Gemini interprets your natural language and extracts actionable fields.</p>
-            </article>
-            <article>
-              <h3>Context Aware</h3>
-              <p>Weather and place APIs shape better activity recommendations.</p>
-            </article>
-            <article>
-              <h3>Real Execution</h3>
-              <p>Confirmed plans become calendar events and are stored in your history.</p>
-            </article>
-          </div>
-        </section>
+        <div className="login-topbar">
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={() => setTheme(isDarkTheme ? 'light' : 'dark')}
+          >
+            {isDarkTheme ? 'Switch to Light' : 'Switch to Dark'}
+          </button>
+        </div>
 
         <section className="login-card panel">
-          <p className="section-label">Account Login</p>
-          <h2>Continue With Google</h2>
-          <p>Only Google OAuth is supported. Your account is required for plan execution and history tracking.</p>
-
-          {!googleClientId ? (
-            <div className="error-banner">Set VITE_GOOGLE_WEB_CLIENT_ID in frontend/.env and restart the frontend.</div>
-          ) : (
-            <div id="google-signin-button" className="google-button-wrap" />
-          )}
-
-          <p className="login-hint">
-            Use a Google OAuth Web client (not Desktop) and add http://127.0.0.1:5173 in Authorized JavaScript origins.
+          <div className="login-logo" aria-hidden="true">
+            <span>G</span>
+          </div>
+          <p className="login-brand">AI Day Planner</p>
+          <h1 className="login-title">Sign in</h1>
+          <p className="hero-copy">
+            Sign in with Google to use the planner, save your history, and create calendar events.
           </p>
 
-          {error ? <div className="error-banner">{error}</div> : null}
+          <div className="auth-form">
+            {!googleClientId ? (
+              <div className="error-banner">Set VITE_GOOGLE_WEB_CLIENT_ID in frontend/.env and restart the frontend.</div>
+            ) : (
+              <>
+                <div id="google-signin-button" className="google-button-wrap" />
+                {!googleReady ? <p className="login-hint">Loading Google sign-in...</p> : null}
+              </>
+            )}
 
-          <div className="login-footer">
-            <span className="status-pill">{apiInfo ? 'Backend Connected' : 'Checking Backend...'}</span>
+            {error ? <div className="error-banner">{error}</div> : null}
+
+            <div className="login-footer">
+              <span className="status-pill">{apiInfo ? 'Backend Connected' : 'Checking Backend...'}</span>
+            </div>
           </div>
         </section>
       </main>

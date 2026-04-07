@@ -1,6 +1,6 @@
 import re
 from datetime import date, datetime, time, timedelta
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 def decide_activity(weather: str, activity: str, fallback: str) -> str:
@@ -14,8 +14,16 @@ def _next_weekend_day(today: date) -> date:
     return today + timedelta(days=days_until_saturday)
 
 
+def _resolve_timezone(tz_name: str) -> ZoneInfo:
+    try:
+        return ZoneInfo(tz_name)
+    except ZoneInfoNotFoundError:
+        # Fallback prevents hard failure when system tz database is missing.
+        return ZoneInfo("UTC")
+
+
 def resolve_time_window(time_text: str | None, tz_name: str = "Asia/Kolkata") -> tuple[str, str]:
-    tz = ZoneInfo(tz_name)
+    tz = _resolve_timezone(tz_name)
     today = date.today()
     target_date = _next_weekend_day(today) if time_text and "weekend" in time_text.lower() else today
 
